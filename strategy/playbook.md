@@ -1498,6 +1498,20 @@ is one research act. Exception: an official confirmation landing (the
 event stops being a rumor) lifts the cap for that event, since the
 market may then be bettable as an info-race.
 
+**AI release-date anchoring rule (RETRO-20260928-2015).** When no primary
+source (an official post, docs page or named-exec statement) gives a date,
+the recorded est_prob for an AI or product release-date rung (by-date or
+exact-date) is the ladder mid. A lean built from leaks or aggregators goes
+in the note as "shade view: X" and does not go into est_prob. Evidence: 7 of 7
+"later than the market" reads have now resolved against me. These are the
+four Opus No-reads on 09-22/23 and the three Sonnet 5.5 rows on 09-28
+(`298455f0923c`, `b5144f22aaaa`, `e4910305e1c3`: own 0.38/0.55/0.65 vs mid
+0.475/0.68/0.875, each dBrier about +0.10). ai-model-release forecasts sit at
+brier_delta +0.0838 on n=35. A primary-source check (news page, models page)
+still runs, but only a POSITIVE finding (the launch is live, or an official
+date) moves est_prob off the mid. "Not out yet" earlier on the day moves
+nothing. Re-grade the shade views at n=8.
+
 Work from `core/scan.py` output (protected filters already applied).
 Prefer, in order:
 1. **Earnings-beat markets** (`Will X beat quarterly earnings?`) — resolve
