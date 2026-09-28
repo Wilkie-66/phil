@@ -1512,6 +1512,17 @@ still runs, but only a POSITIVE finding (the launch is live, or an official
 date) moves est_prob off the mid. "Not out yet" earlier on the day moves
 nothing. Re-grade the shade views at n=8.
 
+**Treasury touch drift rule (RETRO-20260928-2215).** For a Treasury
+par-yield touch rung ("hit X% in <month>") with 5 or fewer prints left,
+the recorded est_prob is the RAW bootstrap (drift kept), updated for the
+overnight futures move. Driftless and demeaned reads go in the note as
+"shade view: X" and never into est_prob. Evidence: every near-rung row
+that dropped drift lost to the mid, 5 of 5 (`03f07792d701`, `fdedb184ad3e`,
+`8b9d86b667bb`, `3ed526b57eca`, `84012264b65d`); the one raw-bootstrap
+row `99df204b7f85` (0.67 vs mid 0.54) beat the mid. Far-rung sd (model
+wider than PM's compressed ladder, RETRO-20260924-2213) is untouched.
+Touch rows stay forecast-only. Re-grade at the next monthly ladder.
+
 Work from `core/scan.py` output (protected filters already applied).
 Prefer, in order:
 1. **Earnings-beat markets** (`Will X beat quarterly earnings?`) — resolve
@@ -6923,3 +6934,23 @@ Full grading in RETRO-20260928-0415.
 - **Scheduled-close crypto uses ladder-implied sd (5eed485): kept.** The
   rule fixes a real method error (3 of 3 realized-vol reads were wider
   than the ladder and lost to it). Forecast-only stands; re-grade at n=8.
+
+## 2026-09-28 22:15Z update: 4 `outside-view-veto` + 2 `wide-spread-veto` rows settled (Treasury Sep ladder, box office Sep 26 weekend)
+
+| 10y hit 5.20% Sep (`fdedb184ad3e`, OVV) | 0.28 / 0.06 (No frame) | No | +0.190 | Yes | −5.00 |
+| 10y hit 5.20% Sep (`3ed526b57eca`, OVV) | 0.47 / 0.26 (No frame) | No | +0.200 | Yes | −5.00 |
+| Heart of the Beast 17-20m (`cec5bff18abf`, OVV) | 0.40 / 0.76 | No | +0.350 | No | **+15.00** |
+| Forgotten Island <13m (`bb60348ab311`, OVV) | 0.90 / 0.7525 | Yes | +0.145 | No | −5.00 |
+| 30y hit 5.50% Sep (`99df204b7f85`, WSV) | 0.67 / 0.54 | Yes | +0.055 | Yes | **+3.13** |
+| 30y hit 5.55% Sep (`84012264b65d`, WSV) | 0.31 / 0.51 | No | −0.107 | Yes | −5.00 |
+
+Mechanical ledgers (`core/counterfactual.py ledger --skip-reason ...`):
+outside-view-veto batch $0.00 (1W/3L): 179 rows, 171 trd, 72W/99L,
++$77.41 (unchanged). Side: no 126/118/54W-64L/+$43.21 (+5.00); yes
+53/53/18W-35L/+$34.20 (−5.00). Check 43.21+34.20=77.41 ✓.
+wide-spread-veto batch −$1.87 (1W/1L): 27 rows, 24 trd, 3 refused,
+14W/10L, −$24.35 (−22.48−1.87 ✓), dBrier −0.0372. Side: no 15/13/6W-7L/
+−$22.84; yes 12/11/8W-3L/−$1.50. Check −22.84−1.50=−24.34 ≈ −24.35
+(rounding) ✓. Ruling: no boundary change; the rates misses were the
+driftless est (new Treasury touch drift rule), not the veto. Full
+grading in RETRO-20260928-2215.
