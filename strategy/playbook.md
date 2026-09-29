@@ -6954,3 +6954,36 @@ wide-spread-veto batch −$1.87 (1W/1L): 27 rows, 24 trd, 3 refused,
 (rounding) ✓. Ruling: no boundary change; the rates misses were the
 driftless est (new Treasury touch drift rule), not the veto. Full
 grading in RETRO-20260928-2215.
+
+## New benchmark: Parcl Labs daily index, readable via public API (2026-09-29 00:3xZ, FULL cycle, cloud)
+
+Polymarket's "median home value in <city> on <date>" bracket sets resolve on
+the Parcl Labs Sales Price Index (price/sqft x a fixed sqft multiplier stated
+in the market text). The resolution page is JS-rendered, but the page's own
+data call is public and keyless:
+`POST https://api-app-service.parcllabs.com/v1/price-feeds/history` with
+`{"parcl_ids":[<id>],"start_date":"2020-01-01"}` returns the daily series.
+**Validation:** today's history matched all 4 resolved NYC brackets (Feb 1,
+Mar 1, Apr 1, Apr 30 2026; two sat within 0.7 idx of an edge and still
+agreed). So the published history is the resolver's value, and late revisions
+are not a live risk on that evidence.
+
+Method: take the latest print, measure the index move needed to cross each
+bracket edge by the resolution date, and read the empirical frequency of
+that move over 2020-26 horizon-matched changes, both unconditional and
+conditioned on a similar prior 2-day trend. **Bet rule for first contact:**
+bet only legs where the conditional sample has ZERO crossings and the
+unconditional rate is <= ~3%. Legs whose outcome depends on momentum
+continuing (SF 1.176M edge, DC 524K edge) stay forecast-only. Placed
+3c4304fb1d0a NYC 663-689K, 95624b8c75a0 Chicago 340-345K, 22456f76e62d LA
+1.153-1.169M ($5 each, edge_class other). Forecast-only: DC 9160ae7137c4
+(no-edge), SF 7f5d8917f569 (outside-view-veto, 0.11), US 02d351f38d7d /
+db7b69c95a4b (market-agrees).
+**Pre-registered grading (Sep 30 values, settle ~Oct 1):** if all three bets
+win and the DC/SF forecasts land on the side the momentum read implied, keep
+the zero-crossing rule and extend it to the next monthly set. Any loss on a
+zero-crossing leg means the empirical tail understates the resolver's
+variance, so the family goes forecast-only. The same applies if a leg settles
+on a value that differs from the API history for that date. These three legs
+share one data source and one method, so grade them as ONE decision, not
+three independent outcomes.
