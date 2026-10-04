@@ -37,6 +37,26 @@ def check(cfg):
     need(0 < r["max_position_pct"] <= 0.5, "max_position_pct must be in (0, 50%]")
     need(1 <= r["max_open_positions"] <= 5, "max_open_positions must be in [1, 5]")
     need(0 < r["max_drawdown_halt_pct"] <= 0.25, "max_drawdown_halt_pct must be in (0, 25%]")
+    pp = cfg["paper"]
+    need(1 <= pp["max_sleeves"] <= r["max_open_positions"], "paper.max_sleeves must be in [1, max_open_positions]")
+    need(pp["max_sleeves"] * r["max_position_pct"] <= 1.0, "sleeves would allocate more than 100% of capital")
+    need(0 < pp["live_grace_minutes"] <= cfg["timeframe_minutes"], "live_grace_minutes must be in (0, timeframe]")
+    need(0 < pp["sleeve_dd_halt_mult"] <= 2.0, "sleeve_dd_halt_mult must be in (0, 2]")
+    need(0 < pp["sleeve_dd_halt_max"] <= 0.40, "sleeve_dd_halt_max must be in (0, 40%]")
+    need(pp["health_min_bars"] >= 60, "health_min_bars below 60")
+    need(pp["min_order_usd"] >= 1.0, "min_order_usd below $1")
+    return errs
+
+
+def check_jsonl(path):
+    errs = []
+    if path.exists():
+        for i, line in enumerate(path.read_text().splitlines(), 1):
+            if line.strip():
+                try:
+                    json.loads(line)
+                except json.JSONDecodeError:
+                    errs.append(f"{path.name} line {i} is not JSON")
     return errs
 
 
@@ -69,6 +89,8 @@ def main():
     except (KeyError, json.JSONDecodeError) as e:
         errs.append(f"config.json unreadable: {e!r}")
     errs += check_trials()
+    for name in ("passes.jsonl", "paper-ledger.jsonl"):
+        errs += check_jsonl(TRIALS_PATH.parent / name)
     for f in sorted(QUANT_DIR.rglob("*.py")):
         try:
             py_compile.compile(str(f), doraise=True)

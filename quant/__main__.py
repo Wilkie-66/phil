@@ -4,6 +4,9 @@
   fetch --symbol XBTUSD               top the cache up from Kraken's public API
   evaluate STRATEGY.py --symbol XBTUSD [--synthetic]
   trials                              how many variations have been tried so far
+  paper run                           stage 3: process new closed bars for every passed strategy
+  paper status                        sleeves, positions, P&L vs backtest, halts
+  paper resume --scope account|SLEEVE operator act: lift a halt
   validate                            integrity tripwires (CI runs this)
 """
 import argparse
@@ -11,7 +14,7 @@ import json
 import sys
 from pathlib import Path
 
-from .engine import data, gates, strategy, trials
+from .engine import data, gates, paper, strategy, trials
 from .engine.config import JOURNAL_DIR, load_config
 from .engine.validate import main as validate_main
 
@@ -55,6 +58,9 @@ def cmd_evaluate(a, cfg):
               f"{m['max_drawdown']:.1%}  trades {m['trades']}   | hold: Sharpe {h['sharpe_ann']} "
               f"return {h['total_return']:.1%} maxDD {h['max_drawdown']:.1%}")
     print(f"  VERDICT: {rep['verdict']}   (report: {rep.get('report_path')})\n")
+    if rep["verdict"] == "PASS" and not a.synthetic:
+        paper.record_pass(rep, path)
+        print("  Recorded in journal/passes.jsonl - `python -m quant paper run` will start paper trading it.\n")
     return 0 if rep["verdict"] == "PASS" else 2
 
 
@@ -69,6 +75,20 @@ def cmd_trials(a, cfg):
         print(f"  {v:4d}  {k}")
 
 
+def cmd_paper(a, cfg):
+    if a.action == "run":
+        def load_df(symbol):
+            return data.load(symbol, cfg["timeframe_minutes"])[0]
+        out = paper.run(cfg, load_df)
+    elif a.action == "resume":
+        if not a.scope:
+            raise SystemExit("paper resume needs --scope account|<sleeve id>")
+        out = paper.resume(a.scope, cfg=cfg)
+    else:
+        out = paper.status(cfg)
+    print(json.dumps(out, indent=2, default=str))
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(prog="python -m quant")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -77,13 +97,15 @@ def main(argv=None):
     s = sub.add_parser("evaluate"); s.add_argument("strategy"); s.add_argument("--symbol", default="XBTUSD")
     s.add_argument("--synthetic", action="store_true"); s.add_argument("--seed", type=int, default=0)
     sub.add_parser("trials")
+    s = sub.add_parser("paper"); s.add_argument("action", choices=["run", "status", "resume"])
+    s.add_argument("--scope")
     sub.add_parser("validate")
     a = p.parse_args(argv)
     if a.cmd == "validate":
         return validate_main()
     cfg = load_config()
     return {"import-csv": cmd_import, "fetch": cmd_fetch, "evaluate": cmd_evaluate,
-            "trials": cmd_trials}[a.cmd](a, cfg) or 0
+            "trials": cmd_trials, "paper": cmd_paper}[a.cmd](a, cfg) or 0
 
 
 if __name__ == "__main__":

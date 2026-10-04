@@ -27,6 +27,15 @@
     "must_beat_buy_and_hold_sharpe": true,
     "leak_checks": 40
   },
+  "paper": {
+    "_comment": "Stage 3. Each passed strategy-symbol pair trades its own sleeve of capital_usd * risk.max_position_pct. A decision only becomes an order if made within live_grace_minutes of the bar close (no hindsight catch-up). Sleeves halt at min(sleeve_dd_halt_mult * backtest OOS max drawdown, sleeve_dd_halt_max).",
+    "max_sleeves": 3,
+    "live_grace_minutes": 90,
+    "sleeve_dd_halt_mult": 1.5,
+    "sleeve_dd_halt_max": 0.30,
+    "health_min_bars": 180,
+    "min_order_usd": 5.0
+  },
   "risk": {
     "risk_per_trade_pct": 0.01,
     "max_position_pct": 0.25,

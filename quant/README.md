@@ -9,7 +9,10 @@ quant/
   engine/            PROTECTED  data, backtest, metrics, leak test, DSR, walk-forward, gates, sizing
   tests/             PROTECTED  30 tests pinning the engine's honesty (CI runs them)
   strategies/        AGENT      one file per hypothesis (see strategies/tsmom.py)
-  journal/trials.jsonl  APPEND-ONLY  every parameter set ever evaluated (CI enforces)
+  paper.sh           PROTECTED  stage 3 cron entry point (fetch -> paper run -> status)
+  journal/trials.jsonl       APPEND-ONLY  every parameter set ever evaluated (CI enforces)
+  journal/passes.jsonl       APPEND-ONLY  strategies that passed all gates on real data
+  journal/paper-ledger.jsonl APPEND-ONLY  every paper decision, fill, halt and resume
   journal/evaluations/  local reports (gitignored)
   data/                 local Kraken cache (gitignored)
 ```
@@ -59,6 +62,41 @@ Copy `strategies/tsmom.py`. A strategy must state a `mechanism`, a
 implement `signal(df, **params)` returning a target position in [0, 1] per bar
 using data up to that bar's close only. Every grid entry is logged as a trial
 the moment it is evaluated — including the ones you delete afterwards.
+
+## Stage 3 — paper trading
+
+A PASS on real data (not `--synthetic`) is recorded in `journal/passes.jsonl`
+with the strategy's code hash. `python -m quant paper run` then trades it on
+paper, forward only:
+
+- **Sleeves.** Each passed strategy × symbol gets its own $250 sleeve
+  (`capital_usd × max_position_pct`); at most 3 sleeves (75% of capital).
+- **Same rules as the backtest.** The signal is computed on bars up to the
+  close, filled at the next bar's open with the 0.40% fee + slippage. Params
+  are re-chosen every `test_bars` on the latest `train_bars`, exactly as in
+  walk-forward.
+- **No hindsight.** A sleeve starts after the last bar that existed when it
+  was activated. A decision becomes an order only if made within 90 minutes
+  of the bar close; bars caught up later (machine asleep) are logged as
+  `missed`, never traded.
+- **Code pinning.** Edit a strategy and its sleeve flattens and retires; it
+  must pass `evaluate` again to start a fresh sleeve.
+- **Kill switches.** A sleeve halts at 1.5× its backtest OOS max drawdown
+  (capped at 30%); the account halts at 15%. Halts flatten positions and
+  stick until you run `python -m quant paper resume --scope account` (or a
+  sleeve id) — an operator decision.
+- **Health.** After 180 bars (30 days) `paper status` compares paper Sharpe
+  to the backtest's and warns below half.
+
+Run it hourly on your machine (works across AEST/AEDT):
+
+```bash
+crontab -e
+7 * * * * cd /path/to/phil && ./quant/paper.sh >> quant/journal/paper-cron.log 2>&1
+```
+
+Stage 4 (next): pending orders become proposals you approve (limit price,
+expiry, reason) before a real Kraken order is sent.
 
 ## Expect rejections
 
