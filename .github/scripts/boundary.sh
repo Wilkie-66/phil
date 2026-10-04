@@ -10,7 +10,9 @@ set -euo pipefail
 BEFORE="${1:?usage: boundary.sh <before-sha> <after-sha>}"
 AFTER="${2:?usage: boundary.sh <before-sha> <after-sha>}"
 
-PROTECTED='^(core/|config/|\.github/|CYCLE\.md|REAL\.md|loop\.sh|CLAUDE\.md|LICENSE|README\.md|\.gitignore)'
+PROTECTED='^(core/|config/|quant/engine/|quant/tests/|quant/config\.json|quant/__main__\.py|\.github/|CYCLE\.md|REAL\.md|loop\.sh|CLAUDE\.md|LICENSE|README\.md|\.gitignore)'
+
+TRIALS='quant/journal/trials.jsonl'
 
 if [[ "$BEFORE" =~ ^0+$ ]]; then
   # Branch creation: no meaningful range; check only the head commit.
@@ -32,6 +34,16 @@ for sha in $COMMITS; do
     echo "::error::agent commit $sha ('$subject') touches operator-owned paths:"
     echo "$touched" | sed 's/^/    /'
     fail=1
+  fi
+  # The trial registry is append-only: deleting rows would shrink the trial
+  # count the deflated Sharpe is computed against.
+  if git diff-tree --no-commit-id --name-only -r "$sha" | grep -qx "$TRIALS"; then
+    old=$(git show "$sha^:$TRIALS" 2>/dev/null || true)
+    new=$(git show "$sha:$TRIALS" 2>/dev/null || true)
+    if [[ "${new:0:${#old}}" != "$old" ]]; then
+      echo "::error::agent commit $sha ('$subject') rewrites existing lines of $TRIALS (append-only)"
+      fail=1
+    fi
   fi
 done
 
