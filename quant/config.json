@@ -1,0 +1,45 @@
+{
+  "_comment": "PROTECTED - operator-owned. The research agent may write strategies/ only. Costs, gates and caps live here so no strategy can flatter itself. Ceilings are enforced by engine/validate.py.",
+  "venue": "kraken",
+  "timeframe_minutes": 240,
+  "bars_per_year": 2190,
+  "capital_usd": 1000.0,
+  "live_trading_enabled": false,
+  "execution": {
+    "_comment": "Signal is known at bar close t; the fill is at the open of bar t+1+approval_delay_bars. Kraken Pro spot taker fee is 0.40% at the lowest volume tier; slippage is a conservative allowance for a $1k account on majors.",
+    "fee_bps_per_side": 40.0,
+    "slippage_bps_per_side": 5.0,
+    "approval_delay_bars": 0,
+    "long_only": true
+  },
+  "walk_forward": {
+    "_comment": "Bars, not days. 1095 = ~6 months of 4h bars, 365 = ~2 months.",
+    "train_bars": 1095,
+    "test_bars": 365,
+    "embargo_bars": 6
+  },
+  "gates": {
+    "dsr_min": 0.95,
+    "min_folds": 6,
+    "min_positive_fold_frac": 0.6,
+    "worst_fold_return_min": -0.10,
+    "min_oos_trades": 30,
+    "must_beat_buy_and_hold_sharpe": true,
+    "leak_checks": 40
+  },
+  "paper": {
+    "_comment": "Stage 3. Each passed strategy-symbol pair trades its own sleeve of capital_usd * risk.max_position_pct. A decision only becomes an order if made within live_grace_minutes of the bar close (no hindsight catch-up). Sleeves halt at min(sleeve_dd_halt_mult * backtest OOS max drawdown, sleeve_dd_halt_max).",
+    "max_sleeves": 3,
+    "live_grace_minutes": 90,
+    "sleeve_dd_halt_mult": 1.5,
+    "sleeve_dd_halt_max": 0.30,
+    "health_min_bars": 180,
+    "min_order_usd": 5.0
+  },
+  "risk": {
+    "risk_per_trade_pct": 0.01,
+    "max_position_pct": 0.25,
+    "max_open_positions": 3,
+    "max_drawdown_halt_pct": 0.15
+  }
+}

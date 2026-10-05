@@ -20,6 +20,13 @@ retrospective → edit its own strategy → research → place simulated bets.
   self-improves. Its git history IS the experiment's product.
 - `journal/` — ledger (JSONL, written only by core), retros, cycle log.
 - `CYCLE.md` — the per-cycle procedure the headless agent follows.
+- `quant/` — separate project: protected validation engine for AI-proposed 4h
+  Kraken crypto strategies (see `quant/README.md`). `quant/engine/`,
+  `quant/tests/`, `quant/config.json`, `quant/__main__.py` and
+  `quant/paper.sh` are operator-owned; agents write `quant/strategies/`
+  only. `quant/journal/{trials,passes,paper-ledger}.jsonl` are written by
+  the engine and append-only (CI enforces both). Stage 3 paper trading
+  (`python -m quant paper run`) runs on the operator's machine only.
 
 ## Purpose
 

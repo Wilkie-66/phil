@@ -27,6 +27,24 @@ jobs:
           pip install --quiet ruff
           ruff check --select E9,F core strategy
 
+  quant:
+    name: Quant engine tests and tripwires
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install --quiet -r quant/requirements.txt ruff
+      - name: Config ceilings, trial registry, sources compile
+        run: python -m quant validate
+      - name: Lint — bug-class rules only
+        run: ruff check --select E9,F quant
+      - name: Engine tests (timing, costs, leak detector, deflated Sharpe, gates)
+        run: python -m pytest quant/tests -q
+
   boundary:
     name: Agent/operator boundary
     runs-on: ubuntu-latest

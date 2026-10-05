@@ -1,0 +1,4 @@
+data/
+journal/evaluations/
+journal/trials-synthetic.jsonl
+journal/paper-cron.log

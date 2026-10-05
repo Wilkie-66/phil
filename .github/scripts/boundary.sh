@@ -10,7 +10,10 @@ set -euo pipefail
 BEFORE="${1:?usage: boundary.sh <before-sha> <after-sha>}"
 AFTER="${2:?usage: boundary.sh <before-sha> <after-sha>}"
 
-PROTECTED='^(core/|config/|\.github/|CYCLE\.md|REAL\.md|loop\.sh|CLAUDE\.md|LICENSE|README\.md|\.gitignore)'
+PROTECTED='^(core/|config/|quant/engine/|quant/tests/|quant/config\.json|quant/__main__\.py|quant/paper\.sh|\.github/|CYCLE\.md|REAL\.md|loop\.sh|CLAUDE\.md|LICENSE|README\.md|\.gitignore)'
+
+# engine-written journals: agents may only append to them
+APPEND_ONLY='quant/journal/trials.jsonl quant/journal/passes.jsonl quant/journal/paper-ledger.jsonl'
 
 if [[ "$BEFORE" =~ ^0+$ ]]; then
   # Branch creation: no meaningful range; check only the head commit.
@@ -33,6 +36,19 @@ for sha in $COMMITS; do
     echo "$touched" | sed 's/^/    /'
     fail=1
   fi
+  # Engine journals are append-only: deleting trial rows would shrink the
+  # count the deflated Sharpe is judged against; editing passes or the paper
+  # ledger would rewrite history.
+  changed=$(git diff-tree --no-commit-id --name-only -r "$sha")
+  for f in $APPEND_ONLY; do
+    grep -qx "$f" <<<"$changed" || continue
+    old=$(git show "$sha^:$f" 2>/dev/null || true)
+    new=$(git show "$sha:$f" 2>/dev/null || true)
+    if [[ "${new:0:${#old}}" != "$old" ]]; then
+      echo "::error::agent commit $sha ('$subject') rewrites existing lines of $f (append-only)"
+      fail=1
+    fi
+  done
 done
 
 if [[ "$fail" -eq 0 ]]; then
